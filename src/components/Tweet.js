@@ -5,8 +5,14 @@ import { useState } from "react";
 import { storageService } from "./../fb";
 import { deleteObject, ref } from "firebase/storage";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faPencilAlt,
+  faTimes,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { AnimatePresence, motion } from "framer-motion";
+import Detail from "./Detail";
 
 const TweetItem = styled(motion.div)`
   background-color: white;
@@ -30,11 +36,40 @@ const TweetItem = styled(motion.div)`
   }
 `;
 
-const EditBox = styled.div``;
+const EditBox = styled.div`
+  width: 100%;
+`;
 
-const EditForm = styled.form``;
+const EditForm = styled.form`
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: space-between;
+  align-items: center;
+`;
 
-const EditInput = styled.input``;
+const EditInput = styled.input`
+  width: 90%;
+  height: 30px;
+  margin-right: 10px;
+`;
+
+const IconBox = styled.span`
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+`;
+
+const SubmitBtn = styled.span`
+  cursor: pointer;
+`;
+
+const Cancle = styled.span`
+  margin-left: 10px;
+  color: #ee5253;
+  cursor: pointer;
+`;
 
 const H4 = styled.h4`
   font-size: 14px;
@@ -50,8 +85,6 @@ const AttachImg = styled.img`
   height: 50px;
   cursor: pointer;
 `;
-
-const Cancle = styled.span``;
 
 const ManageBox = styled.div`
   display: flex;
@@ -75,40 +108,6 @@ const Layout = styled(motion.div)`
   top: 0;
   background-color: rgba(0, 0, 0, 0.8);
   z-index: 999;
-`;
-
-const BigItem = styled(motion.div)`
-  position: absolute;
-  top: 35%;
-  width: 320px;
-  height: 390px;
-  z-index: 9999;
-  background-color: #fff;
-  border-radius: 5px;
-  overflow-y: hidden;
-  display: grid;
-  grid-template-rows: 320px 1fr;
-`;
-
-const BigImg = styled.div`
-  width: 100%;
-  height: 320px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-`;
-
-const BigTextBox = styled.div`
-  padding: 15px 20px;
-  overflow-y: hidden;
-`;
-
-const BigText = styled.h4`
-  font-size: 14px;
-  height: 100%;
-  color: black;
-  margin: 0;
-  overflow-y: hidden;
-  overflow-wrap: break-word;
 `;
 
 const Tweet = ({ tweetObj, isOwner }) => {
@@ -138,6 +137,11 @@ const Tweet = ({ tweetObj, isOwner }) => {
     setEditing(false);
   };
 
+  const contentChange = async () => {
+    await updateDoc(doc(dbService, "tweets", tweetObj.id), { text: newTweet });
+    setEditing(false);
+  };
+
   const onChange = (event) => {
     const {
       target: { value },
@@ -145,21 +149,15 @@ const Tweet = ({ tweetObj, isOwner }) => {
     setNewTweet(value);
   };
 
-  // const onLayout = (id) => {
-  //   setLayoutId(id);
-  // };
-
   const NO_IMG =
     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRlz1nScKxKQoZhQOAhiPMx6bjBSwJ9boR0Lw&usqp=CAU";
 
+  // const onLayout = (id) => {
+  //   setLayoutId(id);
+  // };
   return (
     <>
-      <TweetItem
-        layoutId={tweetObj.id}
-        // onClick={
-        //   editing ? (e) => e.stopPropagation : () => setLayoutId(tweetObj.id)
-        // }
-      >
+      <TweetItem layoutId={tweetObj.id}>
         {editing ? (
           <EditBox>
             <EditForm onSubmit={onSubmit}>
@@ -171,17 +169,28 @@ const Tweet = ({ tweetObj, isOwner }) => {
                 autoFocus
                 required
               />
-              <EditInput type="submit" value="Update Tweet" />
+              <IconBox>
+                <SubmitBtn onClick={contentChange}>
+                  <FontAwesomeIcon icon={faCheck} />
+                </SubmitBtn>
+                <Cancle onClick={toggleEdit}>
+                  <FontAwesomeIcon icon={faTimes} />
+                </Cancle>
+              </IconBox>
             </EditForm>
-            <Cancle onClick={toggleEdit}>Cancle</Cancle>
           </EditBox>
         ) : (
           <>
-            {tweetObj.attachUrl && (
+            {tweetObj.attachUrl ? (
               <AttachImg
                 onClick={() => setLayoutId(tweetObj.id)}
                 src={tweetObj.attachUrl}
                 alt="img"
+              />
+            ) : (
+              <AttachImg
+                onClick={() => setLayoutId(tweetObj.id)}
+                src={NO_IMG}
               />
             )}
             <H4 onClick={() => setLayoutId(tweetObj.id)}>{tweetObj.text}</H4>
@@ -213,31 +222,7 @@ const Tweet = ({ tweetObj, isOwner }) => {
         {layoutId && (
           <>
             <Layout onClick={() => setLayoutId("")}></Layout>
-            <BigItem layoutId={layoutId}>
-              {tweetObj.attachUrl ? (
-                <>
-                  <BigImg
-                    style={{
-                      background: `url(${tweetObj.attachUrl}) center center/cover`,
-                    }} /*src={tweetObj.attachUrl}*/
-                  />
-                  <BigTextBox>
-                    <BigText>{tweetObj.text}</BigText>
-                  </BigTextBox>
-                </>
-              ) : (
-                <>
-                  <BigImg
-                    style={{
-                      background: `#fff url(${NO_IMG}) center center/cover`,
-                    }}
-                  />
-                  <BigTextBox>
-                    <BigText>{tweetObj.text}</BigText>
-                  </BigTextBox>
-                </>
-              )}
-            </BigItem>
+            <Detail tweetObj={tweetObj} layoutId={layoutId} />
           </>
         )}
       </AnimatePresence>
